@@ -2,4 +2,4 @@ Notes and notebooks for the [AI For Medicine specialization](https://www.deeplea
 
 - [Lecture notes](lecture_notes.md)
 - [Reading notes](reading_notes.md)
-- [Jupyter notebooks for assignments](assignments)
+- [Jupyter notebooks](notebooks)
