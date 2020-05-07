@@ -1,12 +1,37 @@
+Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.ai/ai-for-medicine/) offered by [deeplearning.ai](https://www.deeplearning.ai/).
+
+
+- [Course 1: AI for Medical Diagnosis](#course-1-ai-for-medical-diagnosis)
+  - [1.1. Disease detection with computer vision](#11-disease-detection-with-computer-vision)
+    - [1.1.1. Applications of computer vision to medical diagnosis](#111-applications-of-computer-vision-to-medical-diagnosis)
+    - [1.1.2. How to handle class imbalance and small training sets](#112-how-to-handle-class-imbalance-and-small-training-sets)
+    - [1.1.3. Check how well your model performs](#113-check-how-well-your-model-performs)
+  - [1.2. Evaluating models](#12-evaluating-models)
+    - [1.2.1. Key evaluation metrics](#121-key-evaluation-metrics)
+    - [1.2.2. How does varying the threshold affect evaluation metrics?](#122-how-does-varying-the-threshold-affect-evaluation-metrics)
+    - [1.2.3. Interpreting confidence intervals correctly](#123-interpreting-confidence-intervals-correctly)
+  - [1.3. Image segmentation on MRI images](#13-image-segmentation-on-mri-images)
+    - [1.3.1. MRI data](#131-mri-data)
+    - [1.3.2 Image segmentation](#132-image-segmentation)
+    - [1.3.3 Practical considerations](#133-practical-considerations)
+- [Course 2: AI for Medical Prognosis](#course-2-ai-for-medical-prognosis)
+  - [2.1. Linear prognostic models](#21-linear-prognostic-models)
+    - [2.1.1. Prognosis and risk](#211-prognosis-and-risk)
+  - [2.1.2. Prognostic models in medical practice](#212-prognostic-models-in-medical-practice)
+  - [2.4. Representing feature interactions](#24-representing-feature-interactions)
+  - [2.5. Evaluating prognostic models](#25-evaluating-prognostic-models)
+
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
 ## 1.1. Disease detection with computer vision
 
-### 1.1.1. Welcome to the AI for Medicine Specialization
+### 1.1.1. Applications of computer vision to medical diagnosis 
+- Examples of medical image diagnosis tasks where deep learning algorithms have achieved performance measures comparable to human
+  - Dermatology: detecting cancerous skin tissues
+  - Ophthalmology: diabetic retinopathy (DR) detection
+  - Histopathology: determine cancer spread to Lymph nodes from whole-slide image.
 
-### 1.1.2. Applications of computer vision to medical diagnosis 
-
-### 1.1.3. How to handle class imbalance and small training sets
+### 1.1.2. How to handle class imbalance and small training sets
 
 - 3 Key challenges
   - Class imbalance
@@ -49,7 +74,7 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   - Use pre-trained CNN and fine-tune deeper layers
   - Generate more samples using data augmentation
 
-### 1.1.4. Check how well your model performs
+### 1.1.3. Check how well your model performs
 - Training/validation/test set or training (cross-validation)/test set
 - 3 challenges for medical images
   - Patient overlap
@@ -131,7 +156,7 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   - Apply to the 3-D volume
 - Loss function for image segmentation
   - Pixel-wise probability estimation
-  - Soft Dice Loss 
+  - *Soft Dice Loss*
   
     $$L(P,G)=1-\frac{2\sum_i^np_ig_i}{\sum_i^np_i^2+\sum_i^ng_i^2}$$ 
     
@@ -147,3 +172,59 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   - Decision curve analysis
   - Randomized controlled trials
   - Model interpretation
+
+
+
+# Course 2: [AI for Medical Prognosis](https://www.coursera.org/learn/ai-for-medical-prognosis)
+
+
+## 2.1. Linear prognostic models
+
+### 2.1.1. Prognosis and risk
+
+- [Prognosis](https://en.wikipedia.org/wiki/Prognosis) is a medical term that refers to predicting the likelihood or expected development of a disease. 
+- Essentially it's a task of predicting risk of a future event.
+- Prognosis is useful for
+  - Informing patients of their risk of  illness, and survival with illness.
+  - Guiding treatment, e.g.,
+    - Risk of heart attack $\rightarrow$ Who should get drugs 
+    - 6-month mortality risk $\rightarrow$ Who should receive end-of-life care. 
+
+## 2.1.2. Prognostic models in medical practice
+- Prognostic model scheme
+
+  ![prog_model_scheme](figures/c2w1_prognostic_model_framework.png)
+
+- Examples
+  - Use chads vasc score to predict 1-year risk of stroke for patients with *atrial fibrillation*.
+  - Use model for end-stage *liver disease* (MELD) score to estimate 3-month mortality for patients $\geq 12$ of age on liver transplant waiting lists.
+  - Use ASCVD Risk Estimator Plus to predict 10-year *risk of heart disease* for patients 20 or older without heart disease.
+
+## 2.4. Representing feature interactions
+- Risk equation without interaction, e.g.,
+    $$\text{Score} = \ln \text{Age} \times \text{coefficient}_{Age} + \log BP \times \text{coefficient}_{BP}$$
+- The same equation with interaction terms
+  $$\text{Score} = \ln \text{Age} \times \text{coefficient}_{Age} + \log BP \times \text{coefficient}_{BP} + \ln \text{Age}\times \log BP \times \text{coefficient}_{Age, BP}$$
+- The interaction term captures the interdependence of feature effects to the risk, as shown in the figure below (left is without interaction, right is with interaction term)
+
+  ![Interaction term](figures/c2w1_interaction_term.png)
+
+
+## 2.5. Evaluating prognostic models
+- Good risk model should give patient of positive class (e.g., died within 10 years) a higher score than patient of negative class.
+- Terminology for pairs
+  - For a pair of two patients, if the patient of worse condition has a higher score, then the pair is called **concordant**.
+  - If the patient of worse condition has a lower score, the pair is **non-concordant**.
+  - If the pair has the same risk scores, it's called **risk ties** regardless of their outcome.
+  - If the pair has the same outcome, it's called **ties in outcome** regardless of their risk scores.
+  - **Permissible** pairs are pairs with different outcomes.
+- Evaluation of prognostic models
+  - +1 for a permissible pair that is concordant.
+  - +0.5 for a permissible pair for risk time.
+- C-Index (AKA *concordance index*)
+  - Definition
+  $$\text{C-index}=\dfrac{\# \text{ concordant pairs} + 0.5\times\#\text{ risk ties}}{\# \text{ permissible pairs}}$$
+  - Interpretation
+    - C-index can be interpreted as $P(\text{score}(A) > \text{score}(B)|Y_A > Y_B)$, where random model score = 0.5, and perfect model score = 1.0. 
+  - C-index versus AUC
+    - Quote the [documentation](https://square.github.io/pysurvival/metrics/c_index.html) of the `PySurvival` package, "*the C-index is a generalization of the area under the ROC curve (AUC) that can take into account censored data. It represents the global assessment of the model discrimination power: this is the model’s ability to correctly provide a reliable ranking of the survival times based on the individual risk scores*".
