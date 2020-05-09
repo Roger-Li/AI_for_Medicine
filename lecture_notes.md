@@ -17,9 +17,13 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
 - [Course 2: AI for Medical Prognosis](#course-2-ai-for-medical-prognosis)
   - [2.1. Linear prognostic models](#21-linear-prognostic-models)
     - [2.1.1. Prognosis and risk](#211-prognosis-and-risk)
-  - [2.1.2. Prognostic models in medical practice](#212-prognostic-models-in-medical-practice)
-  - [2.4. Representing feature interactions](#24-representing-feature-interactions)
-  - [2.5. Evaluating prognostic models](#25-evaluating-prognostic-models)
+    - [2.1.2. Prognostic models in medical practice](#212-prognostic-models-in-medical-practice)
+    - [2.1.3. Representing feature interactions](#213-representing-feature-interactions)
+    - [2.1.4. Evaluating prognostic models](#214-evaluating-prognostic-models)
+  - [2.2. Prognosis with Tree-based models](#22-prognosis-with-tree-based-models)
+    - [2.2.1. Tree-based models](#221-tree-based-models)
+    - [2.2.2. Identifying missing data](#222-identifying-missing-data)
+    - [2.2.3. Using imputation to handle missing data](#223-using-imputation-to-handle-missing-data)
 
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
@@ -190,7 +194,7 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
     - Risk of heart attack $\rightarrow$ Who should get drugs 
     - 6-month mortality risk $\rightarrow$ Who should receive end-of-life care. 
 
-## 2.1.2. Prognostic models in medical practice
+### 2.1.2. Prognostic models in medical practice
 - Prognostic model scheme
 
   ![prog_model_scheme](figures/c2w1_prognostic_model_framework.png)
@@ -200,7 +204,7 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   - Use model for end-stage *liver disease* (MELD) score to estimate 3-month mortality for patients $\geq 12$ of age on liver transplant waiting lists.
   - Use ASCVD Risk Estimator Plus to predict 10-year *risk of heart disease* for patients 20 or older without heart disease.
 
-## 2.4. Representing feature interactions
+### 2.1.3. Representing feature interactions
 - Risk equation without interaction, e.g.,
     $$\text{Score} = \ln \text{Age} \times \text{coefficient}_{Age} + \log BP \times \text{coefficient}_{BP}$$
 - The same equation with interaction terms
@@ -210,7 +214,7 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   ![Interaction term](figures/c2w1_interaction_term.png)
 
 
-## 2.5. Evaluating prognostic models
+### 2.1.4. Evaluating prognostic models
 - Good risk model should give patient of positive class (e.g., died within 10 years) a higher score than patient of negative class.
 - Terminology for pairs
   - For a pair of two patients, if the patient of worse condition has a higher score, then the pair is called **concordant**.
@@ -228,3 +232,65 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
     - C-index can be interpreted as $P(\text{score}(A) > \text{score}(B)|Y_A > Y_B)$, where random model score = 0.5, and perfect model score = 1.0. 
   - C-index versus AUC
     - Quote the [documentation](https://square.github.io/pysurvival/metrics/c_index.html) of the `PySurvival` package, "*the C-index is a generalization of the area under the ROC curve (AUC) that can take into account censored data. It represents the global assessment of the model discrimination power: this is the model’s ability to correctly provide a reliable ranking of the survival times based on the individual risk scores*".
+
+
+## 2.2. Prognosis with Tree-based models
+
+- Key concepts
+  - Identify missing data.
+  - Tune a decision tree’s hyperparameters based on its c-index.
+  - Tune a random forest’s hyperparameters based on its c-index.
+  - Use visual inspection to identify differences in distribution due to missing data.
+  - Use mean imputation and regression imputation to fill in missing data.
+  - Use Shapley Additive Explanations (SHAP) to quantify the importance of each feature to a random forest model’s predictions.
+
+### 2.2.1. Tree-based models
+- Linear models find hyperplanes to split the feature space. 
+- Tree-based models are able to split the feature space into regions. 
+  - Their structures can be represented by a series of "if-then" questions.
+  - Decision tree can model non-linear associations.
+- There are a variety of variables to select feature/value to split on for building a decision tree.
+- Control the complexity of the decision tree to combat over-fitting
+  - Hyperparameters, e.g., max depth $\downarrow$
+  - Random forest
+    - Constructs a set of decision trees and average the output
+    - Use row- and column- sampling when building each decision tree.
+- Ensembling decision trees in different ways
+  - Gradient boosting
+  - XGBoost
+  - LightGBM
+
+### 2.2.2. Identifying missing data
+- Survival data
+- [Censoring](https://en.wikipedia.org/wiki/Censoring_(statistics))
+  - "In statistics, censoring is a condition in which the value of a measurement or observation is only partially known".
+- Missing data example
+  - In clinical datasets, missing value can be a result of censoring, e.g., samples that miss BP (blood pressure) value  tend to have lower ages, as young patients less frequently have their BP measured than older patients. 
+  - Dropping missing values blindly in both the training/test set may lead to significant overestimation of model performance on general population.
+- Missing data categories
+  - *Missing Completely at Random*
+    - Missingness is not dependent on anything.
+    - E.g., if BP is MCR, the age distributions among those with BP missing versus BP not missing should be the same.
+      $$p(\text{missing})=\text{constant}$$
+  - *Missing at random*
+    - Missingness is dependent only on available information (covariate).
+    - E.g., a doctor decides to always measure BP for patients with age $>$ 40 and randomly pick 50% to measure BP for age $<$ 40.
+      $$p(\text{missing}|\text{age} < 40)=0.5 \neq p(\text{missing}|\text{age} > 40)=0$$
+
+  - *Missing not at random*
+    - Missingness is dependent on unobservable information.
+    - E.g., a doctor randomly measures the BP of half of the patients when there are no patients waiting, otherwise does not measure BP. Since whether or not there are patients waiting is usually not recorded.
+      $$p(\text{missing}|\text{waiting})=0.5, \quad p(\text{missing}|\text{not waiting})=0$$
+
+  - Though the missing pattern is not always identifiable in practice, it is important to understand how dropping missing data could lead to a biased model for different missing categories.
+
+### 2.2.3. Using imputation to handle missing data
+- Mean imputation
+  - Use the mean feature value of the training set to replace missing values in both the training/test set.
+  - Mean imputation does not preserve the relationship between variables.
+- Regression imputation
+  - For example, we want to build a model to use Age and BP to predict CVD. To fill the missing values in BP, we can utilize the relationship between BP and Age by regression imputation, i.e.,
+    $$BP = \text{coefficient}_{age}\times \text{age}+\text{offset}$$
+  - We then replace the missing values in BP using the fitted linear function.
+  - Multivariate regression imputation would apply for imputation tasks on a larger set of variables.
+  - We use the imputation model fitted on the training set to impute the test set.
