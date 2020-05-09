@@ -1,3 +1,9 @@
+---
+title: AI for Medicine - Lecture Notes
+author: Yuanzhe (Roger) Li
+date: 2020 May
+---
+
 Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.ai/ai-for-medicine/) offered by [deeplearning.ai](https://www.deeplearning.ai/).
 
 
@@ -24,6 +30,15 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
     - [2.2.1. Tree-based models](#221-tree-based-models)
     - [2.2.2. Identifying missing data](#222-identifying-missing-data)
     - [2.2.3. Using imputation to handle missing data](#223-using-imputation-to-handle-missing-data)
+  - [2.3. Survival models](#23-survival-models)
+    - [2.3.1. Survival estimates](#231-survival-estimates)
+    - [2.3.2. Time to event data](#232-time-to-event-data)
+    - [2.3.3. Estimate survival with censored data](#233-estimate-survival-with-censored-data)
+  - [2.4. Hazard functions](#24-hazard-functions)
+    - [2.4.1. Survival and hazard functions](#241-survival-and-hazard-functions)
+    - [2.4.2. Customizing risk models to individual patients](#242-customizing-risk-models-to-individual-patients)
+    - [2.4.3. Non-linear risk models with survival trees](#243-non-linear-risk-models-with-survival-trees)
+    - [2.4.4. Evaluate survival models](#244-evaluate-survival-models)
 
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
@@ -294,3 +309,73 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   - We then replace the missing values in BP using the fitted linear function.
   - Multivariate regression imputation would apply for imputation tasks on a larger set of variables.
   - We use the imputation model fitted on the training set to impute the test set.
+
+
+## 2.3. Survival models
+- Key concepts
+  - Understand and identify time to event data and censored data.
+  - Calculate a naïve estimate of survival.
+  - Calculate the [Kaplan Meier estimate](https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator) of survival and compare it to the naïve estimate.
+
+### 2.3.1. Survival estimates
+- Survival models
+  - What is the probability of survival past X years $\Rightarrow$ What is the probability of survival past any time $t$?
+  - Key quantity for survival models, e.g., $P(\text{time to death } > 2 \text{years}) = 0.8$
+- [Survival function](https://en.wikipedia.org/wiki/Survival_function)
+  $$S(t)=Pr(T>t)$$
+- Valid survival functions 
+  - $S(u)\leq S(v) \text{ if } u >= v$
+  - Typically
+  $$S(t) =  \begin{cases}
+      1 \quad \text{if }t=0\\
+      0 \quad \text{if } t=\infty
+  \end{cases}$$
+
+### 2.3.2. Time to event data
+- Censoring is typical in time to event data. The example below shows the recorded time between given treatment and stroke event.
+
+  | Patient ID | Time to event | Censored | Notes                        |
+  | :--------- | :------------ | :------- | :--------------------------- |
+  | 1          | 12            | No       |                              |
+  | 2          | 14+           | Yes      | Study ends                   |
+  | 3          | 3+            | Yes      | Patient drops out from study | ~~~~ |
+
+- Right censoring
+  - The time to event is only known to exceed a certain value.
+  - *end-of-study* censoring, *loss-to-follow-up* censoring.
+
+### 2.3.3. Estimate survival with censored data
+- To estimate the survival probability, we need to make assumptions on the right-censored data to calculate the fraction of patients that hit a predefined event.
+  - Die immediately $\Rightarrow$ underestimate
+  - Never die $\Rightarrow$ overestimate
+  - Reality is somewhere in-between, the question is what would be a good estimator of the real survival rate?
+
+-  [Kaplan Meier estimator](https://en.wikipedia.org/wiki/Kaplan%E2%80%93Meier_estimator) 
+  $$S(t)=\prod_{t_i\leq t} (1 -\dfrac{d_i}{n_i})$$
+  where $t_i$ are the events observed in the dataset, $d_i$ is the number of deaths at time $t_i$, $n_i$ is the number of people who we know have survived up to time $t_i$.
+
+- Derivation of the Kaplan Meier estimator
+$$
+\begin{aligned}
+S(t) & = P(T > t) \\
+      & = P(T\geq t + 1) \\
+      & = P(T \geq t + 1, T \geq t, T \geq t-1, ..., T\geq 0) \\
+      & = P(T\geq t + 1 | T\geq t) P(T\geq t | T\geq t - 1) \text{ ... }  P(T\geq 1 | T \geq 0) P(T\geq0) \qquad \text{ (Bayes' rule)} \\
+      &=  [1-P(T=t|T\geq t)]\cdot [1-P(T=t - 1|T\geq t - 1)]\text{ .... } [1-P(T=0|T\geq0)]\\
+      & = \prod_{i=0}^{t}[1-P(T=i|T\geq i)] \\
+      & = \prod_{t_i \leq t} (1 - \dfrac{d_i}{n_i})
+
+\end{aligned}
+$$
+
+- Notice that the Kaplan Meier estimator is an aggregate estimator for the general population, and is not able to make individual-level survival prediction taking into account patient's personal profile.
+
+- [Log-rank test](https://en.wikipedia.org/wiki/Logrank_test)
+  - A hypothesis test to compare the survival distributions of two samples, e.g., to test whether two groups of patients who have received different treatment have significantly different survival function.
+
+
+## 2.4. Hazard functions
+### 2.4.1. Survival and hazard functions
+### 2.4.2. Customizing risk models to individual patients
+### 2.4.3. Non-linear risk models with survival trees
+### 2.4.4. Evaluate survival models
