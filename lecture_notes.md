@@ -1,7 +1,9 @@
 ---
-title: AI for Medicine - Lecture Notes
-author: Yuanzhe (Roger) Li
-date: 2020 May
+title: "AI for Medicine - Lecture Notes"
+author: "Yuanzhe (Roger) Li"
+date: "2020 May"
+geometry: "left=2cm,right=2cm,top=2cm,bottom=2cm"
+output: pdf_document
 ---
 
 Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.ai/ai-for-medicine/) offered by [deeplearning.ai](https://www.deeplearning.ai/).
@@ -34,7 +36,7 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
     - [2.3.1. Survival estimates](#231-survival-estimates)
     - [2.3.2. Time to event data](#232-time-to-event-data)
     - [2.3.3. Estimate survival with censored data](#233-estimate-survival-with-censored-data)
-  - [2.4. Hazard functions](#24-hazard-functions)
+  - [2.4. Building a risk model using linear and tree-based models](#24-building-a-risk-model-using-linear-and-tree-based-models)
     - [2.4.1. Survival and hazard functions](#241-survival-and-hazard-functions)
     - [2.4.2. Customizing risk models to individual patients](#242-customizing-risk-models-to-individual-patients)
     - [2.4.3. Non-linear risk models with survival trees](#243-non-linear-risk-models-with-survival-trees)
@@ -355,16 +357,16 @@ $$L(X, y_{\text{mass}}) =  \begin{cases}
   where $t_i$ are the events observed in the dataset, $d_i$ is the number of deaths at time $t_i$, $n_i$ is the number of people who we know have survived up to time $t_i$.
 
 - Derivation of the Kaplan Meier estimator
+
 $$
 \begin{aligned}
 S(t) & = P(T > t) \\
       & = P(T\geq t + 1) \\
       & = P(T \geq t + 1, T \geq t, T \geq t-1, ..., T\geq 0) \\
-      & = P(T\geq t + 1 | T\geq t) P(T\geq t | T\geq t - 1) \text{ ... }  P(T\geq 1 | T \geq 0) P(T\geq0) \qquad \text{ (Bayes' rule)} \\
-      &=  [1-P(T=t|T\geq t)]\cdot [1-P(T=t - 1|T\geq t - 1)]\text{ .... } [1-P(T=0|T\geq0)]\\
+      & = P(T\geq t + 1 | T\geq t) P(T\geq t | T\geq t - 1) \text{ ... }  P(T\geq 1 | T \geq 0) P(T\geq 0) \\
+      & = [1-P(T=t|T\geq t)]\cdot [1-P(T=t - 1|T\geq t - 1)]\text{ .... } [1-P(T=0|T\geq0)]\\
       & = \prod_{i=0}^{t}[1-P(T=i|T\geq i)] \\
       & = \prod_{t_i \leq t} (1 - \dfrac{d_i}{n_i})
-
 \end{aligned}
 $$
 
@@ -374,8 +376,125 @@ $$
   - A hypothesis test to compare the survival distributions of two samples, e.g., to test whether two groups of patients who have received different treatment have significantly different survival function.
 
 
-## 2.4. Hazard functions
+## 2.4. Building a risk model using linear and tree-based models
+- Key concepts
+  - Fit and interpret a [Cox Model](https://en.wikipedia.org/wiki/Proportional_hazards_model#The_Cox_model), a linear estimate of the risk of disease.
+  - Fit a random survival forest model (a non-linear risk model).
+  - Calculate the [relative risk](https://en.wikipedia.org/wiki/Relative_risk) between any two pairs of patients.
+  - Calculate the Harell’s concordance index to evaluate both models.
+
 ### 2.4.1. Survival and hazard functions
+- Recap of survival function
+  - It answers the following question: what is the probability of survival past any time $t$?
+  - Represented by $S(t) = Pr(T > t)$, which is a decreasing function that starts from $1$ and approaches $0$.
+
+- Survival and hazard functions
+  - What's a patient's immediate risk of death if they make it to time $t$?
+  - The question is useful to find out (for example) if patient is more at risk in year 1 or year 10, and to further inform treatment.
+  - Hazard function is defined as $\lambda (t) = Pr(T=t|T\geq t)$,  which is the *risk of death if aged* $t$. 
+    - Alternatively, hazard can be viewed as the probability of failure/death in an infinitesimally small time period between $t$ and $t + \partial t$ *given* that the subject has survived up till time $t$.
+    - Let $t$ denote survival time, and let $f(t)$ be its probability density function, $F(t)$ the cumulative density function. We can re-write the survival and hazard functions as below
+    $$
+    \begin{aligned}
+    &S(t) = 1 - F(t) \\
+    &\lambda(t) = \dfrac{f(t)}{S(t)}
+    \end{aligned}
+    $$
+  - An graphical example of a hazard function is a bathtub curve.
+
+    ![hazard function: bathtub curve](figures/c2w4_bathhub_curve.png)
+
+- The connection between the hazard and survival function
+  - From hazard to survival
+    $$
+    \begin{aligned}
+    \lambda(t) &= \dfrac{f(t)}{S(t)}\\
+        &= \dfrac{f(t)}{1-F(t)} \\
+        &= - \dfrac{\partial}{\partial t}\log[1-F(t)]\\
+        &= - \dfrac{\partial}{\partial t}\log[S(t)]
+    \end{aligned}
+    $$
+    Therefore,
+    $$S(t) = \exp [-\int_0^t \lambda(u) du]$$
+  
+  - From survival to hazard
+    $$\lambda(t) = \dfrac{f(t)}{S(t)} = -\dfrac{S'(t)}{S(t)} $$
+    - By this formula, hazard can be interpreted as the rate of death if aged $t$.
+  - Two example of hazard and survival curves
+
+    ![Two pairs of survival and hazard curves](figures/c2w4_hazard_survival_curves.png)
+
+- Cumulative hazard
+  - Cumulative hazard, denoted as $\Lambda(t)$, is a subject's accumulated hazard up to time $t$.
+  - For discrete time intervals, $\Lambda(t) = \sum_{i=0}^t\lambda(i)$
+  - For continuous time, $\Lambda(t) = \int_0^t \lambda(u) du$
+  - Connection to the survival function
+    $$S(t) = \exp[-\int_0^t \lambda(u)du] =\exp[-\Lambda(t)]$$
+  
+
 ### 2.4.2. Customizing risk models to individual patients
+- [Cox proportional hazards model](https://en.wikipedia.org/wiki/Proportional_hazards_model)
+  - Enables individualized predictions taking into account subject's risk profile.
+  - Baseline times individual factors 
+    $$\lambda_{\text{individual}}(t) = \lambda_0(t)\times \text{factor} = \lambda_0(t)\exp[\sum_p \beta_p X_p]$$
+  - Notice that when all covariables are zero, $\lambda_{\text{individual}}(t) = \lambda_0(t)$
+
+- Ranking patients by risk
+  - Given patient $i$'s risk $\lambda_0(t)\cdot C_i$, we can rank them by their risk
+  - We don't need to know the baseline hazard $\lambda_0$ for ranking purpose, or to know the relative risk of individual subject compared to the baseline.
+
+- Effect of weights on hazard
+  - The individualized hazard model also lets us compare two individuals based on single covariables.
+  - $\exp(\beta_i)$ is the risk increase for factor unit increase in variable $X_i$.
+    - For discrete variable, e.g., smokers Vs non-smokers
+      $$\dfrac{\lambda_{\text{smoker}}(t)}{\lambda_{\text{non-smoker}}(t)} = \dfrac{\lambda_0(t)\exp(\beta_{\text{smoke}}\times 1)\exp[...]}{\lambda_0(t)\exp(\beta_{\text{smoke}}\times 0)\exp[...]} = \exp(\beta_{\text{smoke}})$$
+    - Similarly, for continuous variable, e.g., age
+      $$\dfrac{\lambda_{\text{age}_1}(t)}{\lambda_{\text{age}_2}(t)} = \dfrac{\exp[\beta_{\text{age}}\times \text{age}_1]}{\exp[\beta_{\text{age}}\times \text{age}_2]} = \exp[\beta_{\text{age}}\times(\text{age}_1 - \text{age}_2)]$$
+
+
+
 ### 2.4.3. Non-linear risk models with survival trees
+- Limitations of the Cox proportional hazards model
+  - Unable to model non-linear relationship, e.g., high risk for young and old subjects while low risk for middle-aged subjects.
+  - Assume that individualized risk curves are always proportional to each other, which is not always the case in reality. The graph below shows the risk difference between low-dosage versus high-dosage chemotherapy treatment.
+
+    ![Risk curves for chemotherapy: low-dosage versus high-dosage](figures/c2w4_chemo_risk_curve.png)
+
+- Survival tree
+  - Model the cumulative hazard $\Lambda(t)$ as a decision tree
+
+    ![Example of a survival tree](figures/c2w4_survival_tree_example.png)
+  
+- [Nelson-Aalen estimator](https://en.wikipedia.org/wiki/Nelson%E2%80%93Aalen_estimator)
+  - A non-parametric estimator of the cumulative hazard rate function in case of censored data or incomplete data.
+  - The formula goes as follows
+    $$H(t)=\sum_{t_i \leq t}\dfrac{d_i}{n_i}$$
+  - Where $d_i$ is the number of subjects that died/failed at time $t_i$, $n_i$ is the number that survived to time $t_i$.
+  - Recall that the survival function $S(t) = \exp[-\Lambda(t)]$, we can use Nelson-Aalen to estimate the survival function
+    $$\hat{S}(t)=\exp[-\hat{H}(t)]$$
+
+- Compare risks of subjects using mortality score
+  - Mortality score is a single value that allows us to compare the accumulated risks across a set of event time for different patients/cumulative hazard functions. 
+  - A simple approach is to use $\text{score} = \sum_{t\in T} \Lambda(t)$ where $T$ is a set of time that we are interested in (e.g., $T=[20, 25, 30, 35]$). We compare $\text{score}_a$ and $\text{score}_b$ for $\Lambda_a$ and $\Lambda_b$.
+
 ### 2.4.4. Evaluate survival models
+- Recall that we can use C-index to evaluate prognostic models with binary outcomes
+  $$\text{C-index}=\dfrac{\# \text{concordant pairs} + 0.5 \times \# \text{risk ties}}{\# \text{permissible pairs}}$$
+
+- Survival models have two major differences compared with prognostic models, i.e., time to event and censoring. To cope with the differences, we modify the definitions used in the C-index as follows:
+  - Concordant pairs
+    - Two patients have the same negative outcome, if the patient has a lower time to event and a higher risk score, we consider it a concordant pair.
+    - When their time to event are the same, and they have the same risk scores, it is also a concordant pair.
+  - Risk tie
+    - Risk tie now refers the pair with the same score but different time to event, or the same time to event but different risk scores.
+  - Permissible pairs
+    - Smaller and right-censored time to event in a pair makes it non-permissible, e.g., 20+ years versus 40 years.
+    - If two time to event are the same but both right-censored, it is still non-permissible.
+  
+      ![Permissible and non-permissible pairs for survival data](figures/c2w4_permissible_pairs.png)
+
+- With the modifications above, we can define the Harrell's C-Index using the same formula for evaluating prognostic models.
+
+- An example of computing Harrell's C-Index is as follows:
+
+  ![An example of Harrell's C-Index](figures/c2w4_harrells_c_index.png)

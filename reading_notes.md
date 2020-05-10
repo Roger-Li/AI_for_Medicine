@@ -1,3 +1,11 @@
+---
+title: "AI for Medicine - Reading Notes"
+author: "Yuanzhe (Roger) Li"
+date: "2020 May"
+geometry: "left=2cm,right=2cm,top=2cm,bottom=2cm"
+output: pdf_document
+---
+
 Notes on some of the recommended readings from the specialization.
 
 ### [Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization](https://arxiv.org/pdf/1610.02391.pdf)
