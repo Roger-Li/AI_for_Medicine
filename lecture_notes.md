@@ -41,6 +41,11 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
     - [2.4.2. Customizing risk models to individual patients](#242-customizing-risk-models-to-individual-patients)
     - [2.4.3. Non-linear risk models with survival trees](#243-non-linear-risk-models-with-survival-trees)
     - [2.4.4. Evaluate survival models](#244-evaluate-survival-models)
+- [Course 3: AI for Medical Treatment](#course-3-ai-for-medical-treatment)
+  - [3.1. Treatment Effect Estimation](#31-treatment-effect-estimation)
+    - [3.1.1. Randomized Control Trials (RCT)](#311-randomized-control-trials-rct)
+    - [3.1.2. Average Treatment Effect](#312-average-treatment-effect)
+    - [3.1.3. Individualized Treatment Effect](#313-individualized-treatment-effect)
 
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
@@ -66,7 +71,7 @@ $$L(X, y) =  \begin{cases}
 \end{cases}$$
 
 - Weighted loss
-  - Let $w_p=\dfrac{\text{num negative}}{\text{num total}}$, and $w_p=\dfrac{\text{num positive}}{\text{num total}}$, and the weighted loss becomes the following
+  - ~~Let $w_p=\dfrac{\text{num negative}}{\text{num total}}$, and $w_p=\dfrac{\text{num positive}}{\text{num total}}$, and the weighted loss becomes the following~~
 
 $$L(X, y) =  \begin{cases}
     w_p \times \log P(Y=1|X) \quad \text{if } y = 1\\
@@ -485,7 +490,7 @@ $$
   - Concordant pairs
     - Two patients have the same negative outcome, if the patient has a lower time to event and a higher risk score, we consider it a concordant pair.
     - When their time to event are the same, and they have the same risk scores, it is also a concordant pair.
-  - Risk tie
+  - ~~Risk tie~~
     - Risk tie now refers the pair with the same score but different time to event, or the same time to event but different risk scores.
   - Permissible pairs
     - Smaller and right-censored time to event in a pair makes it non-permissible, e.g., 20+ years versus 40 years.
@@ -498,3 +503,119 @@ $$
 - An example of computing Harrell's C-Index is as follows:
 
   ![An example of Harrell's C-Index](figures/c2w4_harrells_c_index.png)
+
+
+# Course 3: [AI for Medical Treatment](https://www.coursera.org/learn/ai-for-medical-treatment)
+
+## 3.1. Treatment Effect Estimation
+Key concepts
+- Analyze data from a randomized control trial
+- Interpreting Multivariate Models
+- Evaluating Treatment Effect Models
+- Interpreting ML models for Treatment Effect Estimation
+
+### 3.1.1. Randomized Control Trials (RCT)
+- Absolute risk reduction (**ARR**)
+  - Treatment effect can be expressed as the difference between the absolute risks of the treatment and control group. 
+
+- Randomized control trials
+  - RCT is the setup of a medical experiment where subjects are randomly allocated to two or more groups, treated differently and compared with respect to a measured response.
+  - $p$-value should also be reported, which can be interpreted as the likelihood of observing equal or greater effect between the treatment and control group while the true effect is zero.
+  - $p$-value is a function of the number of subjects in each group.
+
+- Number Needed to Treat (**NNT**) is the reciprocal of the ARR, which is the number of people who need to receive the treatment in order to benefit one of them.
+
+### 3.1.2. Average Treatment Effect
+- Causal inference
+  - Potential outcomes of a treatment
+
+    | Unit  | Outcome with treatment    | Outcome without treatment | Effect    |
+    | :---: | ------------------------- | ------------------------- | --------- |
+    |   1   | Doesn't have heart attack | Has heart attack          | Benefit   |
+    |   2   | Has heart attack          | Has heart attack          | No effect |
+    |   3   | Doesn't have heart attack | Doesn't have heart attack | No effect |
+    |   4   | Has heart attack          | Doesn't have heart attack | Harm      |
+  
+  - Let "Doesn't have heart attack"=0 and "Has heart attack"=1, we can represent the table using [Neyman-Rubin causal model](https://en.wikipedia.org/wiki/Rubin_causal_model). Below is an example
+
+    | Patient $i$ | $Y_i(1)$ | $Y_i(0)$ | $Y_i(1)-Y_i(0)$ |
+    | :---------: | :------: | :------: | :-------------: |
+    |      1      |    0     |    1     |       -1        |
+    |      2      |    1     |    1     |        0        |
+    |      3      |    1     |    0     |        1        |
+    |      4      |    0     |    0     |        0        |
+    |      5      |    0     |    1     |       -1        |
+    |    Mean     |   0.4    |   0.6    |      -0.2       |
+
+  - Average treatment effect 
+    
+    $$\mathbb{E}[Y_i(1)-Y_i(0)] = \mathbb{E}[Y_i(1)]-\mathbb{E}[Y_i(0)]$$
+    
+    as shown in the last row of the table above.
+  
+- Average treatment effect
+  - The fundamental problem of causal inference is that we don't have the unobserved information / counterfactual.
+  - In RCT however, we can estimate the average treatment effect by the following
+    
+    $$\mathbb{E}[Y_i(1)-Y_i(0)] = \mathbb{E}[Y_i|W=1]-\mathbb{E}[Y_i|W=0]$$
+
+    where $W=1$ indicates the treatment group, and $W=0$ the control group.
+  - Average treatment effect (ATE) is the negative of the average risk reduction (ARR).
+
+- Conditional Average Treatment Effect (CATE)
+  - Let $X$ be the feature vector of patients, i.e., $X=$[BP, Age, ...], the CATE can be estimated as follows
+    
+    $$\mathbb{E}[Y_i(1)-Y_i(0)|X=x]=\mathbb{E}[Y_i|W=1, X=x]-\mathbb{E}[Y_i|W=0, X=x]$$
+
+  - The problem is that we might not have enough (or even at all) samples in the dataset that satisfies $[W\in \{1, 0\}, X=x]$. To address it, we can learn a **treatment response function** to represent the relationship between $[W, X]$  and $Y$, i.e.,
+  
+    $$\hat{\mathbb{E}}[Y_i(1)-Y_i(0)|X=x]=\hat{\mu}_{W=1}(x) - \hat{\mu}_{W=0}(x)$$
+
+- T-learner
+  - Use base learners to learn the response function
+
+    ![Base learner](figures/c3w1_t_learner_base.png)
+
+  - Train prognostic model as the base learner
+  
+    ![Train base learner](figures/c3w1_t_learner_base_train.png)
+
+  - The method of using two tree-based models as base learners is called **T-Learner**, as an example shown below:
+  
+    ![T-Learner example](figures/c3w1_t_learner_example.png)
+
+- S-learner
+  - The Single-Tree Method (a.k.a S-Learner) uses a single model to estimate the response function by using the treatment indicator as a feature, i.e., $\hat{\mu}(x, w)$ instead of $\hat{\mu}_{W=1}$ and $\hat{\mu}_{W=0}$
+  - The modeling scheme is as follows:
+  
+    ![S-Learner scheme](figures/c3w1_s_learner_scheme.png)
+
+- Pros and Cons 
+  - The disadvantage of S-learner is that the learned model might not use the treatment indicator feature at all, which estimates of treatment effect for all patients as zero.
+  - The T-learner is less likely to have the "leaving treatment indicator out" problem, but since each learner uses about half the data for training, it might miss out on relationships between features.
+
+
+### 3.1.3. Individualized Treatment Effect
+- To evaluate an ITE estimate (say with treatment), we still need a proxy to the counterfactual for the subject of interest.
+  - We can choose a match by finding someone like the patient without treatment.
+
+  ![Evaluate ITE estimates by matching](figures/c3w1_evaluate_ite.png)
+
+  - And then calculate the difference in treatment effect as the **Observed Benefit**.
+  - Once we have a set of matched pairs and the corresponding observed benefits, we can evaluate whether higher predicted effect corresponds to a higher observed benefit.
+
+- C-for-benefit (similar to C-index)
+  - Concordant pair (of matched pairs) is when the higher estimate has higher outcome.
+  - Not Concordant pair is when a higher estimate has lower outcome.
+  - Risk tie is when we have the same effect estimate for different outcomes.
+  - Tie in Outcome is when a pair has the same observed outcome
+  - Permissible pairs are the ones with different observed outcomes.
+  - With the notations above, the C-For-Benefit is defined as below 
+
+  $$\text{C-For-Benefit} = \dfrac{\# \text{ concordant pairs} + 0.5\times \# \text{ risk ties}}{\# \text{ permissible pairs}}$$
+
+- Interpretation of C-For-Benefit
+  - $P(TE_A > TE_B | YD_A > YD_B)$, where $TE$ is the estimate of the difference in treatment effect, $YD$ is the outcome of the observed benefit.
+
+
+
