@@ -46,6 +46,10 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
     - [3.1.1. Randomized Control Trials (RCT)](#311-randomized-control-trials-rct)
     - [3.1.2. Average Treatment Effect](#312-average-treatment-effect)
     - [3.1.3. Individualized Treatment Effect](#313-individualized-treatment-effect)
+  - [3.2. Medical Question Answering](#32-medical-question-answering)
+    - [3.2.1. Question Answering](#321-question-answering)
+    - [3.2.2. Automatic Labeling](#322-automatic-labeling)
+    - [3.2.3. Evaluate Automatic Labeling](#323-evaluate-automatic-labeling)
 
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
@@ -616,6 +620,98 @@ Key concepts
 
 - Interpretation of C-For-Benefit
   - $P(TE_A > TE_B | YD_A > YD_B)$, where $TE$ is the estimate of the difference in treatment effect, $YD$ is the outcome of the observed benefit.
+
+
+## 3.2. Medical Question Answering
+- Key concepts
+  - Extracting disease labels from clinical reports
+  - Question Answering with BERT
+
+### 3.2.1. Question Answering
+
+- Medical question answering
+  - Schematics: Question $\rightarrow$ Search Engine $\rightarrow$ Passage $\rightarrow$ Answer
+    - Use search engine to retrieve relevant passage
+  
+    ![Schematics of QA system](figures/c3w2_qa_1.png)
+
+    - Use language model to generate answer
+
+    ![Language model is used to generate answer](figures/c3w2_qa_2.png)
+
+  - Use [BERT](https://en.wikipedia.org/wiki/BERT_(language_model)) as the language model
+    - Feed tokenized question + passage as input
+      
+      ![Bert (1)](figures/c3w2_qa_bert1.png)
+  
+    - BERT consists of layers of transformer blocks
+  
+      ![Bert (2)](figures/c3w2_qa_bert2.png)
+
+    - Word representation using embedding vectors
+  
+      ![Word representation with embeddings](figures/c3w2_qa_word_representation.png)
+
+- Handling words with multiple meanings
+  - Models like ELMo and BERT are able to incorporate context into word embeddings
+
+    ![Non-contextualized versus contextualized word embeddings](figures/c3w2_bert_contextualization.png)
+
+  - Learning to predict masked words in context
+
+    ![How does BERT learn contextualization](figures/c3w2_bert_learn_context.png)
+
+  - [BioBERT](https://arxiv.org/abs/1901.08746) is a extension of BERT trained on medical data.
+
+- Define the answer in a text
+  - Answer can be a segment of the passage
+  - The model learns the probability of each of the words in the passage being the Start/End of the answer.
+  
+    ![Define the answer by find Start/End word from the passage](figures/c3w2_define_answer_start_end.png)
+
+  - The output answer is the combination of words that has the highest added score
+  
+    ![Generate output answer with the highest combined scores from eligible word combinations](figures/c3w2_define_answer_score_grid.png)
+
+  - The model learns the $S$ and $E$ and updates its word representation by being shown many of the Q-P-A triplets.
+    - Usually first trained on general domain dataset ([SQuAD](https://rajpurkar.github.io/SQuAD-explorer/)) and fine-tuned using biomedical datasets ([BioASQ](http://bioasq.org/)).
+
+
+
+### 3.2.2. Automatic Labeling
+- Automatic label extraction for medical imaging
+  - We can use language models to automatically extract labels from medical reports (e.g., Radiology reports) for medical imaging tasks.
+  
+- Synonyms for labels
+  - Use synonyms and terminologies such as [SNOMED CT](https://en.wikipedia.org/wiki/SNOMED_CT) to search the report for. 
+  
+- Is-a relationships
+  - Terminology collections like SNOMED CT contains Synonyms, and Is-A relationships to concepts, e.g., 
+    - Viral pneumonia *IS-A* Infectious pneumonia
+    - Infectious pneumonia *IS-A* Pneumonia
+    - Pneumonia *IS-A* Lung disease
+  - We can use the relevant Is-A relationships to define rule-based strategy to determine the label.
+
+- Presence or absence of a disease
+  - Also need to take into account whether the observation is present or absent.
+  - We can use Regex Rules, [Dependency Parse Rules](https://en.wikipedia.org/wiki/Dependency_grammar), or Negation Classification.
+  - An example is as follows:
+
+      ![Example of automatic label annotation](figures/c3w2_label_presence.png)
+
+### 3.2.3. Evaluate Automatic Labeling
+- Evaluating label extraction
+  - Ways to get the ground truth
+    - Human annotation from radiology report
+    - Human annotation from image
+- Precision and recall and F1 score
+  - How good is the labeler on each of the labels (e.g., Mass, Pneumonia, Edema)
+  - We can use Precision/Recall/F1-score to evaluate the performance on each diseases.
+- Evaluating on multiple disease categories
+  - Option 1 (*Macro-average*): compute performance measure for each class and average
+  - Option 2 (*Micro-average*): calculate the performance measure globaly
+
+
 
 
 
