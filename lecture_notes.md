@@ -81,7 +81,7 @@ $$L(X, y) =  \begin{cases}
 \end{cases}$$
 
 - Weighted loss
-  - ~~Let $w_p=\dfrac{\text{num negative}}{\text{num total}}$, and $w_p=\dfrac{\text{num positive}}{\text{num total}}$, and the weighted loss becomes the following~~
+  - Let $w_p=\dfrac{\text{num negative}}{\text{num total}}$, and $w_p=\dfrac{\text{num positive}}{\text{num total}}$, and the weighted loss becomes the following
 
 $$L(X, y) =  \begin{cases}
     w_p \times \log P(Y=1|X) \quad \text{if } y = 1\\
