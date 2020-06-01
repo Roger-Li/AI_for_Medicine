@@ -50,6 +50,11 @@ Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.
     - [3.2.1. Question Answering](#321-question-answering)
     - [3.2.2. Automatic Labeling](#322-automatic-labeling)
     - [3.2.3. Evaluate Automatic Labeling](#323-evaluate-automatic-labeling)
+  - [3.3. ML Interpretation](#33-ml-interpretation)
+    - [3.3.1. Feature Importance](#331-feature-importance)
+    - [3.3.2. Individual Feature Importance](#332-individual-feature-importance)
+    - [3.3.3. Interpreting Deep Learning Models](#333-interpreting-deep-learning-models)
+  - [3.4. Citations](#34-citations)
 
 # Course 1: [AI for Medical Diagnosis](https://www.coursera.org/learn/ai-for-medical-diagnosis)
 
@@ -494,7 +499,7 @@ $$
   - Concordant pairs
     - Two patients have the same negative outcome, if the patient has a lower time to event and a higher risk score, we consider it a concordant pair.
     - When their time to event are the same, and they have the same risk scores, it is also a concordant pair.
-  - ~~Risk tie~~
+  - Risk tie
     - Risk tie now refers the pair with the same score but different time to event, or the same time to event but different risk scores.
   - Permissible pairs
     - Smaller and right-censored time to event in a pair makes it non-permissible, e.g., 20+ years versus 40 years.
@@ -709,7 +714,74 @@ Key concepts
   - We can use Precision/Recall/F1-score to evaluate the performance on each diseases.
 - Evaluating on multiple disease categories
   - Option 1 (*Macro-average*): compute performance measure for each class and average
-  - Option 2 (*Micro-average*): calculate the performance measure globaly
+  - Option 2 (*Micro-average*): calculate the performance measure globally
+
+
+## 3.3. ML Interpretation
+- Key concepts
+  - Interpreting Deep Learning Models
+  - Feature Importance in Machine Learning
+
+### 3.3.1. Feature Importance
+- Drop column method
+  - Measure the importance of a feature by the performance difference between the new model trained on the sample with that feature removed and the original model.
+  - The method can get computationally expensive when the total number of features is large.
+  
+- Permutation method
+  - Use the performance difference between the model score evaluated on the dataset with the feature of interest permuted/shuffled and on the original dataset.
+  - The method does not require re-training of the model.
+  - [Permutation feature importance](https://scikit-learn.org/stable/modules/permutation_importance.html#permutation-importance) from `scikit-learn` user's guide.
+
+### 3.3.2. Individual Feature Importance
+- Individual feature importance
+  - Similar to the drop-column method, we can look at the model output difference (instead of performance metric) with feature(s) of interest removed.
+  - The disadvantage is that the importance measure can be misleading when features are correlated.
+- Shapley values
+  - Look at feature coalitions instead of single feature's impact on model output.
+- Shapley values for all patients
+  - Summary plot and dependence plot can provide global importance interpretation.
+  - Check the [`shap`](https://github.com/slundberg/shap) package for more details.
+
+### 3.3.3. Interpreting Deep Learning Models
+- Interpreting CNN models
+  - Use Grad-CAM to generate heatmap that shows part of the image that is the most indicative of the prediction.
+
+    ![Example of Using Grad-CAM to show heapmap that indicates Cardiomegaly](figures/c3w3_grad_cam_example.png)
+
+- Localization maps
+  - Use spatial maps (typically output of last conv layers) 
+  
+    ![Grad-CAM: spatial maps](figures/c3w3_grad_cam_spatial_maps.png)
+
+  - Use weighted-average of the spatial map to generate the final localization map
+  
+    ![Grad-CAM: generate localizaiton map by weighted average of the spatial maps](figures/c3w3_grad_cam_weighted_average.png)
+
+
+- Heat maps
+  - Another modification needed is to apply a ReLU function to the activation (since we care more about positive impact), and then use a color map to convert numerical values to a heatmap. 
+  - Finally the heatmap is resized with interpolation to scale up from the size of the spatial map to the X-Ray image, and made transparent and overlaid with the original image.
+
+    ![Grad-CAM: convert localization map to heatmap](figures/c3w3_heatmap.png)
+
+  - For multi-class problem, we can generate heatmaps for each particular class.
+
+## 3.4. Citations
+- Week 1
+  - Levamisole and fluororacil background: https://www.nejm.org/doi/full/10.1056/NEJM199002083220602
+  - Data sourced from here: https://www.rdocumentation.org/packages/survival/versions/3.1-8/topics/colon
+  - C-statistic for benefit: https://www.ncbi.nlm.nih.gov/pubmed/29132832
+  - T-learner: https://arxiv.org/pdf/1706.03461.pdf
+- Week 2
+  - Grad cam: https://arxiv.org/pdf/1610.02391.pdf
+  - Random forests + permutation importance: https://www.stat.berkeley.edu/~breiman/randomforest2001.pdf (R45f14345c000-1 Breiman, “Random Forests”, Machine Learning, 45(1), 5-32, 2001.)
+  - Shapley importance: https://www.nature.com/articles/s42256-019-0138-9
+- Week 3
+  - Labeling methods and dataset: https://arxiv.org/abs/1901.07031
+  - Huggingface transformers library: https://github.com/huggingface/transformers
+  - BERT paper: https://arxiv.org/abs/1810.04805
+  - Question answering data set (used for example): https://rajpurkar.github.io/SQuAD-explorer/
+  - Clinical note example for question answering: https://www.mtsamples.com/
 
 
 
