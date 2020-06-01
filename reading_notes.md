@@ -4,6 +4,7 @@ author: "Yuanzhe (Roger) Li"
 date: "2020 May"
 geometry: "left=2cm,right=2cm,top=2cm,bottom=2cm"
 output: pdf_document
+urlcolor: blue
 ---
 
 Notes on some of the recommended readings from the specialization.

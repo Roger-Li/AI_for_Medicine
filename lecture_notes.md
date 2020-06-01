@@ -4,6 +4,7 @@ author: "Yuanzhe (Roger) Li"
 date: "2020 May"
 geometry: "left=2cm,right=2cm,top=2cm,bottom=2cm"
 output: pdf_document
+urlcolor: blue
 ---
 
 Lecture notes for the [AI For Medicine specialization](https://www.deeplearning.ai/ai-for-medicine/) offered by [deeplearning.ai](https://www.deeplearning.ai/).
